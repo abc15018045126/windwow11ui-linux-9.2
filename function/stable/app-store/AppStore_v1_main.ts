@@ -1,45 +1,40 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 
-const APPS_ROOT = path.join(process.cwd(), 'apps');
+const MANIFEST_ROOT = path.join(process.cwd(), 'app-store-manifests');
+const VIRTUAL_FS_ROOT = path.join(process.cwd(), 'virtual-fs');
 
 export interface DiscoveredApp {
     name: string;
-    path: string; // Relative path to the app's directory
-    description?: string;
-    version?: string;
+    icon: string;
+    version: string;
+    description: string;
+    author: string;
+    appPath: string; // Relative path to the app's directory
 }
 
 /**
- * @description Scans the /apps directory for valid installable applications.
- * @returns A list of discoverable applications.
+ * @description Scans the /app-store-manifests directory for installable application manifests.
+ * @returns A list of discoverable applications from their manifests.
  */
-const VIRTUAL_FS_ROOT = path.join(process.cwd(), 'virtual-fs');
-
 export const AppStore_v1_discoverApps = async (): Promise<DiscoveredApp[]> => {
     try {
         const discoveredApps: DiscoveredApp[] = [];
-        const appFolders = await fs.readdir(APPS_ROOT, { withFileTypes: true });
+        const manifestFiles = await fs.readdir(MANIFEST_ROOT, { withFileTypes: true });
 
-        for (const dirent of appFolders) {
-            if (dirent.isDirectory()) {
-                const appPath = dirent.name;
-                const packageJsonPath = path.join(APPS_ROOT, appPath, 'package.json');
+        for (const dirent of manifestFiles) {
+            if (dirent.isFile() && dirent.name.endsWith('.json')) {
+                const manifestPath = path.join(MANIFEST_ROOT, dirent.name);
                 try {
-                    const packageJsonContent = await fs.readFile(packageJsonPath, 'utf-8');
-                    const packageJson = JSON.parse(packageJsonContent);
+                    const manifestContent = await fs.readFile(manifestPath, 'utf-8');
+                    const manifest = JSON.parse(manifestContent) as DiscoveredApp;
 
-                    // A valid app must have a name and a main entry point
-                    if (packageJson.name && packageJson.main) {
-                        discoveredApps.push({
-                            name: packageJson.name,
-                            path: `apps/${appPath}`,
-                            description: packageJson.description,
-                            version: packageJson.version,
-                        });
+                    // A valid manifest must have a name and a path to the app
+                    if (manifest.name && manifest.appPath) {
+                        discoveredApps.push(manifest);
                     }
                 } catch (e) {
-                    // Ignore folders that don't have a valid package.json
+                    console.error(`[AppStore_v1_discoverApps] Error parsing manifest ${dirent.name}:`, e);
                 }
             }
         }
@@ -51,8 +46,8 @@ export const AppStore_v1_discoverApps = async (): Promise<DiscoveredApp[]> => {
 };
 
 /**
- * @description "Installs" an app by creating a .app shortcut file on the desktop.
- * @param app The discovered app object.
+ * @description "Installs" an app by creating a .app shortcut file on the desktop using its manifest data.
+ * @param app The discovered app manifest object.
  * @returns True if successful, false otherwise.
  */
 export const AppStore_v1_installApp = async (app: DiscoveredApp): Promise<boolean> => {
@@ -60,13 +55,16 @@ export const AppStore_v1_installApp = async (app: DiscoveredApp): Promise<boolea
         const shortcutFileName = `${app.name}.app`;
         const shortcutPath = path.join(VIRTUAL_FS_ROOT, 'Desktop', shortcutFileName);
 
+        // Ensure the Desktop directory exists before writing the file
+        await fs.mkdir(path.dirname(shortcutPath), { recursive: true });
+
         // The content of the .app file is a JSON object that points to the real app
         const shortcutContent = {
-            appId: app.name, // This assumes the app's 'name' in its package.json is its unique ID
+            appId: app.name, // Use the user-friendly name as the ID
             name: app.name,
-            icon: 'chrome', // Placeholder icon for now
+            icon: app.icon, // Use the icon from the manifest
             isExternal: true,
-            externalPath: app.path,
+            externalPath: app.appPath, // Use the path from the manifest
         };
 
         await fs.writeFile(shortcutPath, JSON.stringify(shortcutContent, null, 2), 'utf-8');
