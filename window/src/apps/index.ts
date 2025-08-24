@@ -4,21 +4,18 @@ import FileExplorerApp, { appDefinition as fileExplorerAppDef } from './FileExpl
 import SettingsApp, { appDefinition as settingsAppDef } from './Settings/SettingsApp';
 import SFTPApp, { appDefinition as sftpAppDef } from './SFTP/SFTPApp';
 import AppStore, { appDefinition as appStoreAppDef } from './AppStore/AppStore';
+import { InstalledApp } from '../../../function/stable/app-store/AppStore_v1_main';
 
 // A dummy component for external apps that will never be rendered.
 const DummyExternalAppComponent: React.FC<AppComponentProps> = () => null;
 
-const appDefinitions: AppDefinition[] = [
+const internalAppDefinitions: AppDefinition[] = [
   notebookAppDef,
   fileExplorerAppDef,
   settingsAppDef,
   sftpAppDef,
   appStoreAppDef,
 ];
-
-export const getAppDefinitionById = (id: string): AppDefinition | undefined => {
-    return appDefinitions.find(app => app.id === id);
-}
 
 // We need to update the component reference in the imported definition
 // because the component itself is the default export.
@@ -28,4 +25,32 @@ settingsAppDef.component = SettingsApp;
 sftpAppDef.component = SFTPApp;
 appStoreAppDef.component = AppStore;
 
-export default appDefinitions;
+
+let allAppsCache: AppDefinition[] | null = null;
+
+export const getAppDefinitions = async (): Promise<AppDefinition[]> => {
+    if (allAppsCache) {
+        return allAppsCache;
+    }
+
+    const installedExternalApps = await window.electronAPI.appStore.getInstalledExternalApps();
+
+    const externalAppDefinitions: AppDefinition[] = installedExternalApps.map((app: InstalledApp) => ({
+        ...app,
+        component: DummyExternalAppComponent, // Assign dummy component
+    }));
+
+    const allApps = [...internalAppDefinitions, ...externalAppDefinitions];
+    allAppsCache = allApps;
+
+    return allApps;
+}
+
+export const getAppDefinitionById = async (id: string): Promise<AppDefinition | undefined> => {
+    const apps = await getAppDefinitions();
+    return apps.find(app => app.id === id);
+}
+
+// Note: The default export is now a function, not an array.
+// Components that use this will need to be updated.
+export default getAppDefinitions;

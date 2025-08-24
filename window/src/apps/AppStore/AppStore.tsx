@@ -1,14 +1,6 @@
 import { useEffect, useState } from 'react';
-import { appStore } from '@services/index';
 import { AppDefinition, AppComponentProps } from '../../types';
-
-type DiscoveredApp = {
-  name: string;
-  description: string;
-  version: string;
-  author: string;
-  icon: string;
-};
+import type { AvailableApp } from '../../../function/stable/app-store/AppStore_v1_main';
 
 export const appDefinition: AppDefinition = {
   id: 'app-store',
@@ -18,14 +10,14 @@ export const appDefinition: AppDefinition = {
 };
 
 const AppStore: React.FC<AppComponentProps> = () => {
-  const [apps, setApps] = useState<DiscoveredApp[]>([]);
+  const [apps, setApps] = useState<AvailableApp[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchApps = async () => {
       try {
-        const discoveredApps = await appStore.discoverApps();
-        setApps(discoveredApps);
+        const availableApps = await window.electronAPI.appStore.discoverAvailableApps();
+        setApps(availableApps);
       } catch (e: any) {
         setError(e.message);
       }
@@ -34,13 +26,17 @@ const AppStore: React.FC<AppComponentProps> = () => {
     fetchApps();
   }, []);
 
-  const handleInstall = async (appName: string) => {
+  const handleInstall = async (app: AvailableApp) => {
     try {
-      await appStore.installApp(appName);
-      alert(`${appName} installed successfully!`);
-      // Maybe refresh the desktop or show a notification
+      const success = await window.electronAPI.appStore.installExternalApp(app);
+      if (success) {
+        alert(`App "${app.name}" installed successfully!`);
+        // Here you would ideally trigger a refresh of the main app list
+      } else {
+        throw new Error('Installation returned false.');
+      }
     } catch (e: any) {
-      alert(`Error installing ${appName}: ${e.message}`);
+      alert(`Error installing ${app.name}: ${e.message}`);
     }
   };
 
@@ -54,15 +50,14 @@ const AppStore: React.FC<AppComponentProps> = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {apps.length > 0 ? (
           apps.map((app) => (
-            <div key={app.name} className="border rounded-lg p-4 flex flex-col">
+            <div key={app.id} className="border rounded-lg p-4 flex flex-col">
               <div className="flex-grow">
                 <h2 className="text-xl font-semibold">{app.name}</h2>
                 <p className="text-gray-600">v{app.version}</p>
-                <p className="mt-2">{app.description}</p>
-                <p className="text-sm text-gray-500 mt-2">By {app.author}</p>
+                <p className="mt-2">{app.description || 'No description available.'}</p>
               </div>
               <button
-                onClick={() => handleInstall(app.name)}
+                onClick={() => handleInstall(app)}
                 className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
               >
                 Install
@@ -70,7 +65,7 @@ const AppStore: React.FC<AppComponentProps> = () => {
             </div>
           ))
         ) : (
-          <p>No apps found in the store.</p>
+          <p>No apps found available for installation.</p>
         )}
       </div>
     </div>
