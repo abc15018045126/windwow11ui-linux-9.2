@@ -2,7 +2,6 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { OpenApp } from '../../types';
 
 // This is the serializable version of OpenApp that lives in the Redux store.
-// It does not contain the component function or other non-serializable data.
 type OpenAppSerializable = Omit<OpenApp, 'component' | 'isExternal' | 'externalPath'>;
 
 interface WindowState {
@@ -22,7 +21,6 @@ const windowSlice = createSlice({
   initialState,
   reducers: {
     _openInternalApp: (state, action: PayloadAction<OpenAppSerializable>) => {
-        // Prevent duplicates if desired (optional)
         if (state.openApps.find(app => app.id === action.payload.id && !app.allowMultipleInstances)) {
             const existing = state.openApps.find(app => app.id === action.payload.id);
             if(existing) state.activeInstanceId = existing.instanceId;

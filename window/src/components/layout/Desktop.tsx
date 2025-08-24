@@ -32,11 +32,15 @@ const DesktopItem: React.FC<{
             } else if (item.name.endsWith('.txt') || item.name.endsWith('.md')) {
                 setIconName('notebook');
             } else if (item.name.endsWith('.app')) {
-                const appInfo = await window.electronAPI.filesystem.readAppFile(item.path);
-                if (appInfo && appInfo.icon && isValidIcon(appInfo.icon)) {
-                    setIconName(appInfo.icon);
-                } else {
-                    setIconName('fileGeneric');
+                try {
+                    const appInfo = await window.electronAPI.filesystem.readAppFile(item.path);
+                    if (appInfo && appInfo.icon && isValidIcon(appInfo.icon)) {
+                        setIconName(appInfo.icon);
+                    } else {
+                        setIconName('fileGeneric');
+                    }
+                } catch (e) {
+                     setIconName('fileGeneric');
                 }
             } else {
                 setIconName('fileGeneric');

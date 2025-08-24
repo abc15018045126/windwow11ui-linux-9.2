@@ -86,12 +86,9 @@ expand_less
 ├── .eslintrc.cjs                # ESLint configuration for code linting
 ├── .prettierrc                  # Prettier configuration for code formatting
 ├── package.json                 # Project dependencies and scripts
-├── vite.config.ts               # Vite bundler configuration
-│
-├── README.md                    # [CRITICAL] Project overview, mandatory reading for new members
 │
 ├── main/                        # [BACKEND] Electron Main Process
-│   ├── index.ts                 # Main process entry point: creates window, manages app lifecycle
+│   ├── index.ts                 # Main process entry point: creates window, manages app lifecycle, starts server
 │   ├── preload.ts               # Preload script: secure bridge for IPC
 │   └── server/                  # Embedded Express server for managing application state (e.g., installed apps).
 │
@@ -99,11 +96,8 @@ expand_less
 │   └── src/
 │       ├── App.tsx              # Root React component
 │       ├── main.tsx             # React application entry point
-│       │
 │       ├── components/          # Reusable UI components for the desktop environment
-│       │
 │       ├── apps/                # Contains React components for all core, built-in applications.
-│       │
 │       └── store/               # Redux global state management
 │
 ├── services/                    # [CORE] API Interface Layer (NO LOGIC)
@@ -115,6 +109,7 @@ expand_less
 ├── apps/                        # [EXTERNAL APPS] Source code for installable external applications.
 │
 └── virtual-fs/                  # Simulated filesystem for the desktop environment.
+    └── Desktop/                 # Contains files and shortcuts.
 4. Guidelines for AI & Newcomers
 
 To maintain project clarity and long-term maintainability, all contributors (including AI assistants) must adhere to the following guidelines:
