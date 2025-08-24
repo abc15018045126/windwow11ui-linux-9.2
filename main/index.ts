@@ -56,6 +56,70 @@ app.whenReady().then(() => {
   const appService = startApiServer();
 
   const sftpConnections = new Map<string, { client: Client, sftp: any }>();
+  const sshConnections = new Map<string, { conn: Client, stream: any, window: BrowserWindow }>();
+
+  ipcMain.handle('ssh:connect', (event, instanceId, config) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) return { success: false, error: 'Window not found' };
+
+    return new Promise((resolve) => {
+      const conn = new Client();
+      const sessionId = `ssh-session-${Date.now()}`;
+
+      conn.on('ready', () => {
+        conn.shell({ term: 'xterm-256color' }, (err, stream) => {
+          if (err) {
+            return resolve({ success: false, error: err.message });
+          }
+
+          sshConnections.set(sessionId, { conn, stream, window });
+
+          stream.on('close', () => {
+            window.webContents.send(`ssh:close:${instanceId}`);
+            conn.end();
+          }).on('data', (data: Buffer) => {
+            window.webContents.send(`ssh:data:${instanceId}`, data.toString('utf8'));
+          }).stderr.on('data', (data: Buffer) => {
+            window.webContents.send(`ssh:data:${instanceId}`, data.toString('utf8'));
+          });
+
+          resolve({ success: true, sessionId });
+        });
+      }).on('error', (err) => {
+        resolve({ success: false, error: `Connection Error: ${err.message}` });
+      }).on('close', () => {
+        sshConnections.delete(sessionId);
+        window.webContents.send(`ssh:close:${instanceId}`);
+      }).connect({
+        ...config,
+        port: parseInt(config.port, 10) || 22,
+        readyTimeout: 20000,
+      });
+    });
+  });
+
+  ipcMain.on('ssh:data', (_event, sessionId: string, data: string) => {
+    const connection = sshConnections.get(sessionId);
+    if (connection && connection.stream) {
+      connection.stream.write(data);
+    }
+  });
+
+  ipcMain.on('ssh:resize', (_event, sessionId: string, { cols, rows }) => {
+    const connection = sshConnections.get(sessionId);
+    if (connection && connection.stream) {
+      connection.stream.setWindow(rows, cols);
+    }
+  });
+
+  ipcMain.on('ssh:disconnect', (_event, sessionId: string) => {
+    const connection = sshConnections.get(sessionId);
+    if (connection && connection.conn) {
+      connection.conn.end();
+    }
+    sshConnections.delete(sessionId);
+  });
+
 
   ipcMain.handle('sftp:connect', (_event, config) => {
     return new Promise((resolve) => {

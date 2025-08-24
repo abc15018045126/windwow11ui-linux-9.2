@@ -4,6 +4,9 @@ import FileExplorerApp, { appDefinition as fileExplorerAppDef } from './FileExpl
 import SettingsApp, { appDefinition as settingsAppDef } from './Settings/SettingsApp';
 import SFTPApp, { appDefinition as sftpAppDef } from './SFTP/SFTPApp';
 import AppStoreApp, { appDefinition as appStoreAppDef } from './AppStore/AppStoreApp';
+import TerminusSshApp, { appDefinition as terminusSshAppDef } from './TerminusSsh/TerminusSshApp';
+import Chrome6App, { appDefinition as chrome6AppDef } from './Chrome/Chrome6App';
+import Chrome7App, { appDefinition as chrome7AppDef } from './Chrome/Chrome7App';
 import { InstalledApp } from '../../../function/stable/app-store/AppStore_v1_main';
 
 // A dummy component for external apps that will never be rendered.
@@ -15,6 +18,9 @@ const internalAppDefinitions: AppDefinition[] = [
   settingsAppDef,
   sftpAppDef,
   appStoreAppDef,
+  terminusSshAppDef,
+  chrome6AppDef,
+  chrome7AppDef,
 ];
 
 // We need to update the component reference in the imported definition
@@ -24,6 +30,9 @@ fileExplorerAppDef.component = FileExplorerApp;
 settingsAppDef.component = SettingsApp;
 sftpAppDef.component = SFTPApp;
 appStoreAppDef.component = AppStoreApp;
+terminusSshAppDef.component = TerminusSshApp;
+chrome6AppDef.component = Chrome6App;
+chrome7AppDef.component = Chrome7App;
 
 
 let allAppsCache: AppDefinition[] | null = null;

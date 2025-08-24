@@ -81,6 +81,23 @@ export function startApiServer() {
     res.json(availableApps);
   });
 
+  apiApp.get('/api/proxy', async (req: Request, res: Response) => {
+    const { url } = req.query;
+    if (!url || typeof url !== 'string') {
+        return res.status(400).send('URL is required');
+    }
+    try {
+        // Dynamic import of node-fetch
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(url);
+        const text = await response.text();
+        res.send(text);
+    } catch (error: any) {
+        console.error('[Proxy Error]', error);
+        res.status(500).send(`Failed to fetch URL: ${error.message}`);
+    }
+  });
+
   apiApp.listen(API_PORT, () => {
     console.log(`✅ API server listening on http://localhost:${API_PORT}`);
   });
