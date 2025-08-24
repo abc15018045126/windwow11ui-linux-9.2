@@ -1,6 +1,9 @@
-import fetch from 'node-fetch';
-
-const API_BASE_URL = 'http://localhost:3001/api/apps';
+// This interface defines the shape of the AppService object passed from main/index.ts
+interface AppServiceInterface {
+    getInstalled: () => any[];
+    install: (app: any) => boolean;
+    discoverAvailable: () => Promise<any[]>;
+}
 
 export interface AvailableApp {
     id: string;
@@ -20,35 +23,29 @@ export interface InstalledApp {
 }
 
 /**
- * Discovers apps available for installation by fetching from the backend server.
+ * Discovers apps available for installation by calling the AppService.
  */
-export const AppStore_v1_discoverAvailableApps = async (): Promise<AvailableApp[]> => {
+export const AppStore_v1_discoverAvailableApps = async (appService: AppServiceInterface): Promise<AvailableApp[]> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/available`);
-        if (!response.ok) {
-            throw new Error(`Server responded with ${response.status}`);
-        }
-        const apps = await response.json() as AvailableApp[];
-
-        // Check installation status
-        const installedApps = await AppStore_v1_getInstalledExternalApps();
+        const availableApps = await appService.discoverAvailable();
+        const installedApps = appService.getInstalled();
         const installedIds = new Set(installedApps.map(app => app.id));
 
-        return apps.map(app => ({
+        return availableApps.map(app => ({
             ...app,
-            isInstalled: installedIds.has(app.id),
+            isInstalled: installedIds.has(app.id.toLowerCase()),
         }));
 
     } catch (error) {
-        console.error('[discoverAvailableApps] Error fetching from server:', error);
+        console.error('[discoverAvailableApps] Error:', error);
         return [];
     }
 };
 
 /**
- * Installs an app by posting to the backend server.
+ * Installs an app by calling the AppService.
  */
-export const AppStore_v1_installExternalApp = async (app: AvailableApp): Promise<boolean> => {
+export const AppStore_v1_installExternalApp = async (appService: AppServiceInterface, app: AvailableApp): Promise<boolean> => {
     try {
         const componentName = app.id.charAt(0).toUpperCase() + app.id.slice(1);
         const payload = {
@@ -59,31 +56,21 @@ export const AppStore_v1_installExternalApp = async (app: AvailableApp): Promise
             externalPath: `${app.path}/main.js`,
         };
 
-        const response = await fetch(`${API_BASE_URL}/install`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-
-        return response.ok;
+        return appService.install(payload);
     } catch (error) {
-        console.error(`[installExternalApp] Error fetching from server:`, error);
+        console.error(`[installExternalApp] Error:`, error);
         return false;
     }
 };
 
 /**
- * Retrieves the list of all installed external applications from the server.
+ * Retrieves the list of all installed external applications from the AppService.
  */
-export const AppStore_v1_getInstalledExternalApps = async (): Promise<InstalledApp[]> => {
+export const AppStore_v1_getInstalledExternalApps = async (appService: AppServiceInterface): Promise<InstalledApp[]> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/installed`);
-        if (!response.ok) {
-            throw new Error(`Server responded with ${response.status}`);
-        }
-        return await response.json() as InstalledApp[];
+        return appService.getInstalled();
     } catch (error) {
-        console.error('[getInstalledExternalApps] Error fetching from server:', error);
+        console.error('[getInstalledExternalApps] Error:', error);
         return [];
     }
 };

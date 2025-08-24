@@ -37,7 +37,7 @@ export const getAppDefinitions = async (): Promise<AppDefinition[]> => {
 
     const externalAppDefinitions: AppDefinition[] = installedExternalApps.map((app: InstalledApp) => ({
         ...app,
-        isExternal: true, // Ensure this is set
+        isExternal: true,
         component: DummyExternalAppComponent,
     }));
 

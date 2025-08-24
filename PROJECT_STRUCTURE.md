@@ -14,7 +14,7 @@ The root directory contains configuration files and the primary folders that org
     -   `main/`: **[BACKEND]** The Electron main process, which also runs the backend Express.js server.
     -   `services/`: **[API LAYER]** The "switchboard" that connects the frontend to the backend logic in the `function` module.
     -   `window/`: **[FRONTEND]** The React-based user interface.
-    -   `virtual-fs/`: A simulated filesystem for the application. (Not currently used for app state).
+    -   `virtual-fs/`: A simulated filesystem for the application.
     -   `old/`: **[LEGACY]** Contains the previous version of the application for reference.
 
 ---
@@ -27,13 +27,13 @@ This directory is the heart of the Electron application and its backend.
 
 -   `index.ts`: The main entry point. It creates the browser window, loads the React app, handles IPC, and **starts the backend server**.
 -   `preload.ts`: Exposes a secure API (`window.electronAPI`) from the main process to the frontend, which is the only way the frontend can communicate with the backend.
--   `server/`: Contains the Express.js server. This server manages the application's state, such as the list of installed applications, and exposes a REST API for the `function` modules to interact with.
+-   `server/`: Contains the Express.js server. This server manages the application's state, such as the in-memory list of installed applications, and exposes a REST API.
 
 ### `function/` (Isolated Business Logic)
 
 This is where all the "thinking" of the application happens.
 
--   `stable/`: Contains stable, immutable functions. These functions are called by the frontend (via the IPC bridge and services layer). They are often clients that `fetch` data from the backend Express server, keeping the core logic on the server and this layer clean.
+-   `stable/`: Contains stable, immutable functions. These functions are called by the frontend (via the IPC bridge and services layer). They are often clients that interact with the `appService` object returned by the server, keeping the core logic on the server and this layer clean.
 
 ### `services/` (API Interface Layer)
 
@@ -54,4 +54,8 @@ This directory contains the entire React application.
 This directory is a repository for the source code of external, standalone applications.
 
 -   Each subdirectory is a self-contained application.
--   The backend server's `/api/apps/available` endpoint scans this directory to let the App Store know what can be installed.
+-   The backend server's API scans this directory to let the App Store know what can be installed.
+
+### `virtual-fs/` (Simulated Filesystem)
+
+-   This directory acts as the user's "hard drive" within the application. For example, the `Desktop/` subdirectory can hold files and shortcuts. This allows the application to manage files without touching the user's actual computer filesystem.
