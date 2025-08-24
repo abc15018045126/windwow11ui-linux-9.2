@@ -54,7 +54,7 @@ This directory contains the entire React application that the user sees and inte
 -   `src/`: The source code for the React app.
     -   `main.tsx`: The root of the React application, where it mounts to the `index.html`.
     -   `App.tsx`: The main React component that lays out the core structure of the UI.
-    -   `apps/`: Contains the React components for core, built-in applications like the "App Store" and "File Explorer".
+    -   `apps/`: Contains the React components for core, built-in applications (e.g., "Settings") and also serves as the destination for **auto-generated launcher files** for installed external apps.
     -   `components/`: Contains reusable React components that make up the desktop environment.
         -   `layout/`: Components that define the overall structure, like the `Desktop` and `Taskbar`.
         -   `features/`: Specific interactive elements like `AppWindow` (the frame for applications), `ContextMenu`, and the `StartMenu`.

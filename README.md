@@ -105,40 +105,30 @@ expand_less
 │       │   ├── layout/          # Overall desktop structure (Desktop, Taskbar)
 │       │   └── features/        # Specific UI features (AppWindow, ContextMenu, StartMenu)
 │       │
-│       ├── apps/                # [CORE APPS] Standalone "applications" within the desktop
-│       │   ├── FileManager/
+│       ├── apps/                # [CORE APPS] Contains built-in apps and **generated launchers** for external apps.
+│       │   ├── AppStoreApp/
+│       │   ├── FileExplorer/
 │       │   ├── Notebook/
 │       │   └── Settings/
 │       │
 │       ├── hooks/               # Custom React Hooks
-│       ├── pages/               # Top-level pages (e.g., DesktopPage)
 │       ├── store/               # Redux global state management
 │       │   └── slices/          # State slices by feature (desktopSlice, windowSlice)
 │       │
-│       ├── lib/                 # Common frontend utility functions
 │       ├── styles/              # Global styles
 │       └── types/               # TypeScript type definitions
 │
 ├── services/                    # [CORE] API Interface Layer (NO LOGIC)
-│   ├── SERVICES_API.md          # [IMPORTANT] Rules for the services module
 │   └── api/                     # API definitions
 │
 ├── function/                    # [CORE] All Business Logic (Completely Isolated)
-│   ├── FUNCTION_GUIDELINES.md   # [IMPORTANT] Core rules for the function module
-│   │
-│   ├── stable/                  # Stable functions (never modified after release)
-│   │   ├── user/
-│   │   └── file/
-│   │
-│   └── test/                    # Test functions (under development)
-│       ├── user/
-│       └── data/
+│   └── stable/                  # Stable, immutable functions organized by feature.
 │
-├── components/                  # [Optional] Global, business-agnostic UI library components
-│   └── ui/                      # (e.g., base implementations of Button, Modal)
+├── apps/                        # [EXTERNAL APPS] Source code for installable external applications.
+│   └── Chrome5/                 # Example external app.
 │
-└── apps/                        # [Optional] External apps or large plug-in modules
-    └── reporting/
+└── virtual-fs/                  # Simulated filesystem for the desktop environment.
+    └── Desktop/                 # Contains files and shortcuts shown on the desktop.
 4. Guidelines for AI & Newcomers
 
 To maintain project clarity and long-term maintainability, all contributors (including AI assistants) must adhere to the following guidelines:
