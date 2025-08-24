@@ -16,13 +16,13 @@ export interface SftpFile {
  */
 export const SFTP_v1_listDirectory = (sftp: SFTPWrapper, remotePath: string): Promise<SftpFile[] | null> => {
     return new Promise((resolve) => {
-        sftp.readdir(remotePath, (err, list) => {
+        sftp.readdir(remotePath, (err: any, list: any) => {
             if (err) {
                 console.error(`[SFTP_v1_listDirectory] Error:`, err);
                 resolve(null);
                 return;
             }
-            const items = list.map(item => ({
+            const items = list.map((item: any) => ({
                 name: item.filename,
                 path: remotePath === '/' ? `/${item.filename}` : `${remotePath}/${item.filename}`,
                 type: item.longname.startsWith('d') ? 'folder' : 'file',
@@ -44,8 +44,8 @@ export const SFTP_v1_downloadFile = (sftp: SFTPWrapper, remotePath: string): Pro
     return new Promise((resolve) => {
         const stream = sftp.createReadStream(remotePath);
         const chunks: Buffer[] = [];
-        stream.on('data', (chunk) => chunks.push(chunk as Buffer));
-        stream.on('error', (err) => {
+        stream.on('data', (chunk: any) => chunks.push(chunk as Buffer));
+        stream.on('error', (err: any) => {
             console.error(`[SFTP_v1_downloadFile] Error:`, err);
             resolve(null);
         });
