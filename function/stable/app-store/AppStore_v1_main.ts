@@ -3,6 +3,7 @@ import path from 'path';
 
 const APPS_ROOT = path.join(process.cwd(), 'apps');
 const AUTOGEN_APP_ROOT = path.join(process.cwd(), 'window', 'src', 'apps');
+const DESKTOP_PATH = path.join(process.cwd(), 'virtual-fs', 'Desktop');
 
 /**
  * Describes an application that is available on the filesystem for installation.
@@ -73,31 +74,45 @@ export const AppStore_v1_discoverAvailableApps = async (): Promise<AvailableApp[
 };
 
 /**
- * Installs an app by generating a .tsx launcher file for it.
+ * Installs an app by generating a .tsx launcher file for it AND a .app shortcut on the desktop.
  */
 export const AppStore_v1_installExternalApp = async (app: AvailableApp): Promise<boolean> => {
     try {
         const componentName = app.id.charAt(0).toUpperCase() + app.id.slice(1); // "Chrome5"
         const launcherFilePath = path.join(AUTOGEN_APP_ROOT, `${componentName}App.tsx`);
 
-        if (existsSync(launcherFilePath)) {
-            console.warn(`App "${app.name}" is already installed. Launcher file exists.`);
-            return true; // Consider it a success if already installed
+        // 1. Generate the .tsx file
+        if (!existsSync(launcherFilePath)) {
+            const appDefinition = {
+                id: app.id.toLowerCase(), // e.g., "chrome5"
+                name: componentName, // Use the sanitized name like "Chrome5" for display
+                icon: app.id.toLowerCase(), // Use the id for the icon name
+                isExternal: true,
+                externalPath: path.join(app.path, 'main.js'),
+                component: null,
+            };
+            const launcherContent = generateLauncherComponent(componentName, appDefinition);
+            await fs.writeFile(launcherFilePath, launcherContent, 'utf-8');
+            console.log(`Successfully generated launcher for ${app.name} at ${launcherFilePath}`);
+        } else {
+             console.warn(`Launcher file for "${app.name}" already exists.`);
         }
 
-        const appDefinition = {
-            id: app.id.toLowerCase(), // e.g., "chrome5"
-            name: componentName, // Use the sanitized name like "Chrome5" for display
-            icon: app.id.toLowerCase(), // Use the id for the icon name
-            isExternal: true,
-            externalPath: path.join(app.path, 'main.js'),
-            component: null, // This will be replaced by the default export in the file
-        };
+        // 2. Generate the .app file on the desktop
+        const desktopShortcutPath = path.join(DESKTOP_PATH, `${componentName}.app`);
+        if (!existsSync(desktopShortcutPath)) {
+            await fs.mkdir(DESKTOP_PATH, { recursive: true }); // Ensure desktop exists
+            const shortcutContent = {
+                appId: app.id.toLowerCase(),
+                name: componentName,
+                icon: app.id.toLowerCase(),
+            };
+            await fs.writeFile(desktopShortcutPath, JSON.stringify(shortcutContent, null, 2), 'utf-8');
+            console.log(`Successfully created desktop shortcut for ${app.name} at ${desktopShortcutPath}`);
+        } else {
+            console.warn(`Desktop shortcut for "${app.name}" already exists.`);
+        }
 
-        const launcherContent = generateLauncherComponent(componentName, appDefinition);
-        await fs.writeFile(launcherFilePath, launcherContent, 'utf-8');
-
-        console.log(`Successfully generated launcher for ${app.name} at ${launcherFilePath}`);
         return true;
     } catch (error) {
         console.error(`[installExternalApp] Error for app ${app.name}:`, error);
