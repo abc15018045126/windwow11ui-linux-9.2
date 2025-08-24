@@ -9,15 +9,18 @@ import { AppDefinition, OpenApp } from '../../types';
 
 const TASKBAR_HEIGHT = 48;
 
-type TaskbarApp = (AppDefinition | OpenApp) & {
+// A combined type for items on the taskbar
+type TaskbarItem = (Omit<OpenApp, 'component'> | AppDefinition) & {
     isOpen: boolean;
     isActive: boolean;
+    instanceId?: string;
 };
+
 
 const Taskbar: React.FC = () => {
     const dispatch = useDispatch();
     const { openApps, activeInstanceId, nextZIndex } = useSelector((state: RootState) => state.windows);
-    const { pinnedApps } = useSelector((state: RootState) => state.ui);
+    const { pinnedApps: pinnedAppIds } = useSelector((state: RootState) => state.ui);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [allApps, setAllApps] = useState<AppDefinition[]>([]);
 
@@ -35,27 +38,44 @@ const Taskbar: React.FC = () => {
     }, []);
 
 
-    const taskbarApps = useMemo(() => {
-        const runningInstanceAppIds = new Set(openApps.map(app => app.id));
+    const taskbarItems = useMemo<TaskbarItem[]>(() => {
+        const runningAppsMap = new Map<string, TaskbarItem[]>();
+        openApps.forEach(app => {
+            const items = runningAppsMap.get(app.id) || [];
+            runningAppsMap.set(app.id, [...items, { ...app, isOpen: true, isActive: app.instanceId === activeInstanceId }]);
+        });
 
-        const pinnedAndNotRunning = pinnedApps
+        const pinnedApps = pinnedAppIds
             .map(appId => allApps.find(def => def.id === appId))
-            .filter((appDef): appDef is AppDefinition => !!appDef && !runningInstanceAppIds.has(appDef.id));
+            .filter((app): app is AppDefinition => !!app);
 
-        const combined = [
-            ...openApps.map(app => ({ ...app, isOpen: true, isActive: app.instanceId === activeInstanceId })),
-            ...pinnedAndNotRunning.map(appDef => ({ ...appDef, isOpen: false, isActive: false })),
-        ];
+        const combined: TaskbarItem[] = [];
+        const processed = new Set<string>();
+
+        // Add running apps first
+        openApps.forEach(app => {
+            if (processed.has(app.id)) return;
+            combined.push(...(runningAppsMap.get(app.id) || []));
+            processed.add(app.id);
+        });
+
+        // Add pinned apps that are not running
+        pinnedApps.forEach(app => {
+            if (processed.has(app.id)) return;
+            combined.push({ ...app, isOpen: false, isActive: false });
+            processed.add(app.id);
+        });
 
         return combined;
-    }, [pinnedApps, openApps, allApps, activeInstanceId]);
+    }, [pinnedAppIds, openApps, allApps, activeInstanceId]);
 
     const handleToggleStartMenu = () => {
         dispatch(toggleStartMenu());
     };
 
-    const handleAppIconClick = async (app: TaskbarApp) => {
-        if (app.isOpen && 'instanceId' in app) {
+    const handleAppIconClick = async (app: TaskbarItem) => {
+        // If the app is already open
+        if (app.isOpen && app.instanceId) {
             const openAppInstance = app as OpenApp;
             if (openAppInstance.isMinimized) {
                 dispatch(toggleMinimizeApp(openAppInstance.instanceId));
@@ -64,7 +84,7 @@ const Taskbar: React.FC = () => {
             } else {
                 dispatch(focusApp(openAppInstance.instanceId));
             }
-        } else {
+        } else { // If the app is not open, launch it
             const appDef = await getAppDefinitionById(app.id);
             if (appDef) {
                 if (appDef.isExternal && appDef.externalPath) {
@@ -99,8 +119,8 @@ const Taskbar: React.FC = () => {
                         <Icon iconName="start" className="w-6 h-6 text-blue-400" />
                     </button>
 
-                    {taskbarApps.map(app => {
-                        const buttonKey = 'instanceId' in app ? app.instanceId : app.id;
+                    {taskbarItems.map(app => {
+                        const buttonKey = app.instanceId || app.id;
                         return (
                             <button
                                 key={buttonKey}

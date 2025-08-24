@@ -1,10 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { getAppDefinitionById } from '../../apps';
 import { OpenApp } from '../../types';
 
 // This is the serializable version of OpenApp that lives in the Redux store.
-// It does not contain the component function.
-type OpenAppSerializable = Omit<OpenApp, 'component'>;
+// It does not contain the component function or other non-serializable data.
+type OpenAppSerializable = Omit<OpenApp, 'component' | 'isExternal' | 'externalPath'>;
 
 interface WindowState {
   openApps: OpenAppSerializable[];
@@ -22,15 +21,13 @@ const windowSlice = createSlice({
   name: 'windows',
   initialState,
   reducers: {
-    openApp: (state, action: PayloadAction<string>) => {
-        const appId = action.payload;
-        // This is a placeholder action. The actual logic will be handled
-        // in a custom listener middleware or thunk that can perform async logic.
-        // For now, we'll just log it. A proper implementation would require
-        // more significant changes to the async flow.
-        console.log(`Request to open app: ${appId}`);
-    },
     _openInternalApp: (state, action: PayloadAction<OpenAppSerializable>) => {
+        // Prevent duplicates if desired (optional)
+        if (state.openApps.find(app => app.id === action.payload.id && !app.allowMultipleInstances)) {
+            const existing = state.openApps.find(app => app.id === action.payload.id);
+            if(existing) state.activeInstanceId = existing.instanceId;
+            return;
+        }
         state.openApps.push(action.payload);
         state.activeInstanceId = action.payload.instanceId;
         state.nextZIndex += 1;
@@ -107,6 +104,6 @@ const windowSlice = createSlice({
   },
 });
 
-export const { openApp, _openInternalApp, closeApp, focusApp, updateAppPosition, updateAppSize, toggleMaximize, toggleMinimizeApp } = windowSlice.actions;
+export const { _openInternalApp, closeApp, focusApp, updateAppPosition, updateAppSize, toggleMaximize, toggleMinimizeApp } = windowSlice.actions;
 
 export default windowSlice.reducer;

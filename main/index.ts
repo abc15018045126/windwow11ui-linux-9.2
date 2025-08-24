@@ -1,11 +1,12 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import { Client } from 'ssh2'
 import { Notebook_v1_readFile, Notebook_v1_saveFile } from '../services/api/notebook'
 import { SFTP_v1_listDirectory, SFTP_v1_downloadFile } from '../services/api/sftp'
 import { Launcher_v1_launchExternal } from '../services/api/launcher'
-import { AppStore_v1_discoverAvailableApps, AppStore_v1_installExternalApp } from '../services/api/appStore'
+import { AppStore_v1_discoverAvailableApps, AppStore_v1_installExternalApp, AppStore_v1_getInstalledExternalApps } from '../services/api/appStore'
+import { startApiServer } from './server';
 import {
   Filesystem_v1_getItemsInPath,
   Filesystem_v1_createFolder,
@@ -68,6 +69,8 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(() => {
+  startApiServer();
+
   // --- SFTP Connection Management ---
   const sftpConnections = new Map<string, { client: Client, sftp: any }>();
 
@@ -172,6 +175,9 @@ app.whenReady().then(() => {
   });
   ipcMain.handle('appStore:install', (_event, app) => {
     return AppStore_v1_installExternalApp(app);
+  });
+  ipcMain.handle('appStore:getInstalled', () => {
+    return AppStore_v1_getInstalledExternalApps();
   });
 
   createWindow()

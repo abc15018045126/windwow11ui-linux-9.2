@@ -93,42 +93,28 @@ expand_less
 ├── main/                        # [BACKEND] Electron Main Process
 │   ├── index.ts                 # Main process entry point: creates window, manages app lifecycle
 │   ├── preload.ts               # Preload script: secure bridge for IPC
-│   └── server/                  # Embedded Express server (for OAuth, etc.)
+│   └── server/                  # Embedded Express server for managing application state (e.g., installed apps).
 │
 ├── window/                      # [FRONTEND] All User Interfaces (Renderer Process)
 │   └── src/
 │       ├── App.tsx              # Root React component
 │       ├── main.tsx             # React application entry point
 │       │
-│       ├── assets/              # Static assets (icons, wallpapers)
-│       ├── components/          # Common UI components for the desktop environment
-│       │   ├── layout/          # Overall desktop structure (Desktop, Taskbar)
-│       │   └── features/        # Specific UI features (AppWindow, ContextMenu, StartMenu)
+│       ├── components/          # Reusable UI components for the desktop environment
 │       │
-│       ├── apps/                # [CORE APPS] Contains built-in apps and **generated launchers** for external apps.
-│       │   ├── AppStoreApp/
-│       │   ├── FileExplorer/
-│       │   ├── Notebook/
-│       │   └── Settings/
+│       ├── apps/                # Contains React components for all core, built-in applications.
 │       │
-│       ├── hooks/               # Custom React Hooks
-│       ├── store/               # Redux global state management
-│       │   └── slices/          # State slices by feature (desktopSlice, windowSlice)
-│       │
-│       ├── styles/              # Global styles
-│       └── types/               # TypeScript type definitions
+│       └── store/               # Redux global state management
 │
 ├── services/                    # [CORE] API Interface Layer (NO LOGIC)
-│   └── api/                     # API definitions
+│   └── api/                     # Exports functions from the `function` module.
 │
 ├── function/                    # [CORE] All Business Logic (Completely Isolated)
-│   └── stable/                  # Stable, immutable functions organized by feature.
+│   └── stable/                  # Acts as a client to the backend server or performs other pure logic.
 │
 ├── apps/                        # [EXTERNAL APPS] Source code for installable external applications.
-│   └── Chrome5/                 # Example external app.
 │
 └── virtual-fs/                  # Simulated filesystem for the desktop environment.
-    └── Desktop/                 # Contains files and shortcuts shown on the desktop.
 4. Guidelines for AI & Newcomers
 
 To maintain project clarity and long-term maintainability, all contributors (including AI assistants) must adhere to the following guidelines:

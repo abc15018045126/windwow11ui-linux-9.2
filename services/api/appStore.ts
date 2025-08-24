@@ -5,4 +5,5 @@
 export {
     AppStore_v1_discoverAvailableApps,
     AppStore_v1_installExternalApp,
+    AppStore_v1_getInstalledExternalApps,
 } from '../../function/stable/app-store/AppStore_v1_main';

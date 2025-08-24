@@ -32,7 +32,7 @@ export const openItem = createAsyncThunk(
                     size: appDef.defaultSize || { width: 600, height: 400 },
                     zIndex: nextZIndex,
                 };
-                const { component, ...serializablePayload } = newApp;
+                const { component, isExternal, externalPath, ...serializablePayload } = newApp;
                 dispatch(_openInternalApp(serializablePayload));
             }
         };
