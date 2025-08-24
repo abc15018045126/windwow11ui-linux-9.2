@@ -25,7 +25,7 @@ const electronAPI = {
   appStore: {
     discoverApps: () => ipcRenderer.invoke('appStore:discover'),
     installApp: (app: any) => ipcRenderer.invoke('appStore:install', app),
-    getInstalledApps: () => ipcRenderer.invoke('appStore:getInstalled'),
+    getInstalledExternalApps: () => ipcRenderer.invoke('appStore:getInstalled'),
   },
   ssh: {
     connect: (instanceId: string, config: any) => ipcRenderer.invoke('ssh:connect', instanceId, config),
