@@ -14,6 +14,7 @@ export interface AvailableApp {
     version: string;
     description: string;
     path: string; // The relative path to the app's directory, e.g., "apps/Chrome5"
+    isInstalled?: boolean;
 }
 
 const generateLauncherComponent = (appName: string, appDef: object): string => {
@@ -53,12 +54,16 @@ export const AppStore_v1_discoverAvailableApps = async (): Promise<AvailableApp[
                     const packageJson = JSON.parse(packageJsonContent);
 
                     if (packageJson.name && packageJson.main) {
+                        const componentName = dirent.name.charAt(0).toUpperCase() + dirent.name.slice(1);
+                        const launcherFilePath = path.join(AUTOGEN_APP_ROOT, `${componentName}App.tsx`);
+
                         availableApps.push({
                             id: dirent.name, // e.g., "Chrome5"
                             name: packageJson.name,
                             version: packageJson.version,
                             description: packageJson.description,
                             path: path.join('apps', dirent.name),
+                            isInstalled: existsSync(launcherFilePath),
                         });
                     }
                 } catch (e) {
