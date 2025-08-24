@@ -20,6 +20,9 @@ const iconMap: { [key: string]: React.FC<AppIconProps> } = {
   sftp: Icons.SftpIcon,
   fileExplorer: Icons.FileExplorerIcon,
   chrome: Icons.BrowserIcon,
+  terminusSsh: Icons.TerminusSshIcon,
+  chrome6: Icons.Browser6Icon,
+  chrome7: Icons.Browser7Icon,
   // Add other icons here as they are migrated
 };
 

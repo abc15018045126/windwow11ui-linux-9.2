@@ -25,7 +25,23 @@ const electronAPI = {
   appStore: {
     discoverApps: () => ipcRenderer.invoke('appStore:discover'),
     installApp: (app: any) => ipcRenderer.invoke('appStore:install', app),
-  }
+    getInstalledApps: () => ipcRenderer.invoke('appStore:getInstalled'),
+  },
+  ssh: {
+    connect: (instanceId: string, config: any) => ipcRenderer.invoke('ssh:connect', instanceId, config),
+    disconnect: (sessionId: string) => ipcRenderer.send('ssh:disconnect', sessionId),
+    sendData: (sessionId: string, data: string) => ipcRenderer.send('ssh:data', sessionId, data),
+    resize: (sessionId: string, dims: { cols: number, rows: number }) => ipcRenderer.send('ssh:resize', sessionId, dims),
+    onData: (instanceId: string, callback: (data: string) => void) =>
+      ipcRenderer.on(`ssh:data:${instanceId}`, (_event, data) => callback(data)),
+    onError: (instanceId: string, callback: (error: string) => void) =>
+      ipcRenderer.on(`ssh:error:${instanceId}`, (_event, error) => callback(error)),
+    onClose: (instanceId: string, callback: () => void) =>
+      ipcRenderer.on(`ssh:close:${instanceId}`, () => callback()),
+    offData: (instanceId: string) => ipcRenderer.removeAllListeners(`ssh:data:${instanceId}`),
+    offError: (instanceId: string) => ipcRenderer.removeAllListeners(`ssh:error:${instanceId}`),
+    offClose: (instanceId: string) => ipcRenderer.removeAllListeners(`ssh:close:${instanceId}`),
+  },
 }
 
 // Securely expose the API to the renderer process

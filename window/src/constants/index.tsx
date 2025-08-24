@@ -45,4 +45,35 @@ export const SftpIcon: React.FC<AppIconProps> = ({ className = 'w-6 h-6', isSmal
 export const BrowserIcon: React.FC<AppIconProps> = ({ className = 'w-6 h-6', isSmall, }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={isSmall ? 'w-5 h-5' : className}><path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c1.358 0 2.662-.33 3.797-.938M12 21c-1.358 0-2.662-.33-3.797-.938m0 0a9.004 9.004 0 01-4.28-4.28m0 0a9.004 9.004 0 014.28-4.28m0 0a8.957 8.957 0 018.598 0m0 0a9.004 9.004 0 014.28 4.28m0 0a9.004 9.004 0 01-4.28 4.28M3 12a9 9 0 1118 0 9 9 0 01-18 0z" /></svg>
 );
+
+export const TerminusSshIcon: React.FC<AppIconProps> = ({ className = 'w-6 h-6', isSmall, }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={isSmall ? 'w-5 h-5' : className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+    </svg>
+);
+
+export const Browser6Icon: React.FC<AppIconProps> = ({ className = 'w-6 h-6', isSmall, }) => (
+  <div className={`relative ${isSmall ? 'w-5 h-5' : className}`}>
+    <BrowserIcon className="w-full h-full" isSmall={isSmall} />
+    <span
+      className={`absolute bg-purple-500 text-white font-bold rounded-full flex items-center justify-center border-2 border-black/80
+            ${isSmall ? 'text-[8px] w-3.5 h-3.5 -bottom-0.5 -right-0.5' : 'text-[10px] w-4 h-4 -bottom-1 -right-1'}`}
+    >
+      6
+    </span>
+  </div>
+);
+
+export const Browser7Icon: React.FC<AppIconProps> = ({ className = 'w-6 h-6', isSmall, }) => (
+  <div className={`relative ${isSmall ? 'w-5 h-5' : className}`}>
+    <BrowserIcon className="w-full h-full" isSmall={isSmall} />
+    <span
+      className={`absolute bg-red-500 text-white font-bold rounded-full flex items-center justify-center border-2 border-black/80
+            ${isSmall ? 'text-[8px] w-3.5 h-3.5 -bottom-0.5 -right-0.5' : 'text-[10px] w-4 h-4 -bottom-1 -right-1'}`}
+    >
+      7
+    </span>
+  </div>
+);
+
 export const TASKBAR_HEIGHT = 48;
