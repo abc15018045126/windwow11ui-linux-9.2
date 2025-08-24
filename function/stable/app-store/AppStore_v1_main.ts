@@ -1,30 +1,40 @@
-import { promises as fs } from 'fs';
+import { promises as fs, existsSync } from 'fs';
 import path from 'path';
 
 const APPS_ROOT = path.join(process.cwd(), 'apps');
-const REGISTRY_PATH = path.join(process.cwd(), 'data', 'external-apps.json');
+const AUTOGEN_APP_ROOT = path.join(process.cwd(), 'window', 'src', 'apps');
 
 /**
  * Describes an application that is available on the filesystem for installation.
  */
 export interface AvailableApp {
-    id: string;
-    name: string;
+    id: string; // The directory name, e.g., "Chrome5"
+    name: string; // The name from package.json, e.g., "remote-electron-browser"
     version: string;
     description: string;
-    path: string; // The path to the app's directory, e.g., "apps/Chrome5"
+    path: string; // The relative path to the app's directory, e.g., "apps/Chrome5"
 }
 
-/**
- * Describes an application that has been "installed" and is in the registry.
- */
-export interface InstalledApp {
-    id: string;
-    name: string;
-    icon: string;
-    isExternal: true;
-    externalPath: string; // The path to the app's executable main script
-}
+const generateLauncherComponent = (appName: string, appDef: object): string => {
+    const componentName = appName.charAt(0).toUpperCase() + appName.slice(1) + 'App';
+    const appDefString = JSON.stringify(appDef, null, 2);
+
+    return `// This is an auto-generated file for the ${appName} application.
+// Do not edit manually.
+import React from 'react';
+import { AppDefinition, AppComponentProps } from '../../types';
+
+const LauncherComponent: React.FC<AppComponentProps> = () => {
+  // This component is a placeholder for an external application.
+  // It will not be rendered directly. The 'isExternal' flag handles the launch.
+  return null;
+};
+
+export const appDefinition: AppDefinition = ${appDefString};
+
+export default LauncherComponent;
+`;
+};
 
 /**
  * Scans the filesystem for apps that are available to be installed.
@@ -43,8 +53,8 @@ export const AppStore_v1_discoverAvailableApps = async (): Promise<AvailableApp[
 
                     if (packageJson.name && packageJson.main) {
                         availableApps.push({
-                            id: dirent.name.toLowerCase(), // e.g., "chrome5"
-                            name: packageJson.name, // e.g., "remote-electron-browser"
+                            id: dirent.name, // e.g., "Chrome5"
+                            name: packageJson.name,
                             version: packageJson.version,
                             description: packageJson.description,
                             path: path.join('apps', dirent.name),
@@ -63,52 +73,34 @@ export const AppStore_v1_discoverAvailableApps = async (): Promise<AvailableApp[
 };
 
 /**
- * "Installs" an app by adding its definition to the external apps registry.
+ * Installs an app by generating a .tsx launcher file for it.
  */
 export const AppStore_v1_installExternalApp = async (app: AvailableApp): Promise<boolean> => {
     try {
-        let registry: InstalledApp[] = [];
-        try {
-            const data = await fs.readFile(REGISTRY_PATH, 'utf-8');
-            registry = JSON.parse(data);
-        } catch (error: any) {
-            if (error.code !== 'ENOENT') throw error;
+        const componentName = app.id.charAt(0).toUpperCase() + app.id.slice(1); // "Chrome5"
+        const launcherFilePath = path.join(AUTOGEN_APP_ROOT, `${componentName}App.tsx`);
+
+        if (existsSync(launcherFilePath)) {
+            console.warn(`App "${app.name}" is already installed. Launcher file exists.`);
+            return true; // Consider it a success if already installed
         }
 
-        if (registry.some(installedApp => installedApp.id === app.id)) {
-            console.log(`App "${app.name}" is already installed.`);
-            return true; // Already installed, consider it a success
-        }
-
-        const newAppEntry: InstalledApp = {
-            id: app.id,
-            name: app.name, // In a real system, you'd let the user customize this
-            icon: app.id, // Default to using the app ID for the icon
+        const appDefinition = {
+            id: app.id.toLowerCase(), // e.g., "chrome5"
+            name: componentName, // Use the sanitized name like "Chrome5" for display
+            icon: app.id.toLowerCase(), // Use the id for the icon name
             isExternal: true,
-            externalPath: path.join(app.path, 'main.js'), // Convention from old system
+            externalPath: path.join(app.path, 'main.js'),
+            component: null, // This will be replaced by the default export in the file
         };
 
-        registry.push(newAppEntry);
-        await fs.writeFile(REGISTRY_PATH, JSON.stringify(registry, null, 2));
+        const launcherContent = generateLauncherComponent(componentName, appDefinition);
+        await fs.writeFile(launcherFilePath, launcherContent, 'utf-8');
+
+        console.log(`Successfully generated launcher for ${app.name} at ${launcherFilePath}`);
         return true;
     } catch (error) {
         console.error(`[installExternalApp] Error for app ${app.name}:`, error);
         return false;
-    }
-};
-
-/**
- * Retrieves the list of all installed external applications from the registry.
- */
-export const AppStore_v1_getInstalledExternalApps = async (): Promise<InstalledApp[]> => {
-    try {
-        const data = await fs.readFile(REGISTRY_PATH, 'utf-8');
-        return JSON.parse(data);
-    } catch (error: any) {
-        if (error.code === 'ENOENT') {
-            return []; // If registry doesn't exist, no apps are installed
-        }
-        console.error('[getInstalledExternalApps] Error:', error);
-        return [];
     }
 };
