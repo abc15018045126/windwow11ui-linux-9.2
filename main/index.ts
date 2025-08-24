@@ -77,7 +77,7 @@ app.whenReady().then(() => {
       const sessionId = `sftp-session-${Date.now()}`;
 
       client.on('ready', () => {
-        client.sftp((err, sftp) => {
+        client.sftp((err: any, sftp: any) => {
           if (err) {
             resolve({ success: false, error: err.message });
             return;
@@ -87,7 +87,7 @@ app.whenReady().then(() => {
         });
       });
 
-      client.on('error', (err) => {
+      client.on('error', (err: any) => {
         resolve({ success: false, error: err.message });
       });
 
