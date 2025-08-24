@@ -1,0 +1,9 @@
+[
+  {
+    "id": "chrome5",
+    "name": "remote-electron-browser",
+    "icon": "chrome5",
+    "isExternal": true,
+    "externalPath": "apps/Chrome5/main.js"
+  }
+]

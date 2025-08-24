@@ -5,7 +5,7 @@ import { Client } from 'ssh2'
 import { Notebook_v1_readFile, Notebook_v1_saveFile } from '../services/api/notebook'
 import { SFTP_v1_listDirectory, SFTP_v1_downloadFile } from '../services/api/sftp'
 import { Launcher_v1_launchExternal } from '../services/api/launcher'
-import { AppStore_v1_discoverApps, AppStore_v1_installApp } from '../services/api/appStore'
+import { AppStore_v1_discoverAvailableApps, AppStore_v1_installExternalApp, AppStore_v1_getInstalledExternalApps } from '../services/api/appStore'
 import {
   Filesystem_v1_getItemsInPath,
   Filesystem_v1_createFolder,
@@ -168,10 +168,13 @@ app.whenReady().then(() => {
 
   // Register IPC handlers for App Store
   ipcMain.handle('appStore:discover', () => {
-    return AppStore_v1_discoverApps();
+    return AppStore_v1_discoverAvailableApps();
   });
   ipcMain.handle('appStore:install', (_event, app) => {
-    return AppStore_v1_installApp(app);
+    return AppStore_v1_installExternalApp(app);
+  });
+  ipcMain.handle('appStore:getInstalled', () => {
+    return AppStore_v1_getInstalledExternalApps();
   });
 
   createWindow()

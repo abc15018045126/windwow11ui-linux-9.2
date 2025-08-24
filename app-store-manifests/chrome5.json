@@ -1,8 +1,0 @@
-{
-  "name": "Chrome 5",
-  "icon": "chrome",
-  "version": "5.0.0",
-  "description": "An independent web browser application.",
-  "author": "Legacy Systems",
-  "appPath": "apps/Chrome5"
-}
