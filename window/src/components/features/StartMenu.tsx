@@ -1,23 +1,51 @@
-import React, { useState, useMemo } from 'react';
-import { useDispatch } from 'react-redux';
-import { openApp } from '../../store/slices/windowSlice';
-import appDefinitions from '../../apps';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { _openInternalApp } from '../../store/slices/windowSlice';
+import { getAppDefinitions, getAppDefinitionById } from '../../apps';
 import Icon from './Icon';
+import { AppDefinition } from '../../types';
+import { RootState } from '../../store/store';
 
 const StartMenu: React.FC = () => {
   const dispatch = useDispatch();
   const [isShowingAllApps, setIsShowingAllApps] = useState(false);
+  const [apps, setApps] = useState<AppDefinition[]>([]);
+  const nextZIndex = useSelector((state: RootState) => state.windows.nextZIndex);
 
-  const handleOpenApp = (appId: string) => {
-    const appDef = appDefinitions.find(app => app.id === appId);
-    if (appDef) {
-      dispatch(openApp(appDef));
+  useEffect(() => {
+    const fetchApps = async () => {
+      const definitions = await getAppDefinitions();
+      setApps(definitions);
+    };
+    fetchApps();
+  }, []);
+
+  const handleOpenApp = async (appId: string) => {
+    const appDef = await getAppDefinitionById(appId);
+    if (!appDef) return;
+
+    if (appDef.isExternal && appDef.externalPath) {
+        window.electronAPI.launcher.launchExternal(appDef.externalPath);
+    } else {
+        const instanceId = `${appDef.id}-${Date.now()}`;
+        const newApp = {
+            ...appDef,
+            instanceId,
+            title: appDef.name,
+            isMinimized: false,
+            isMaximized: false,
+            position: { x: 50, y: 50 },
+            size: appDef.defaultSize || { width: 600, height: 400 },
+            zIndex: nextZIndex,
+        };
+        // Omit the non-serializable component part before dispatching
+        const { component, ...serializablePayload } = newApp;
+        dispatch(_openInternalApp(serializablePayload));
     }
   };
 
-  // For now, we'll treat all defined apps as "pinned" for simplicity.
-  const pinnedApps = appDefinitions;
-  const sortedApps = useMemo(() => [...appDefinitions].sort((a, b) => a.name.localeCompare(b.name)), [appDefinitions]);
+  const pinnedApps = useMemo(() => apps.filter(app => app.isPinnedToTaskbar), [apps]);
+  const sortedApps = useMemo(() => [...apps].sort((a, b) => a.name.localeCompare(b.name)), [apps]);
 
   return (
     <div
