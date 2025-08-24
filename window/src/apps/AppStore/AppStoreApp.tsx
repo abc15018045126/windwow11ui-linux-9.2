@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { AppDefinition, AppComponentProps } from '../../types';
 import type { AvailableApp } from '../../../function/stable/app-store/AppStore_v1_main';
 
@@ -9,28 +9,30 @@ export const appDefinition: AppDefinition = {
   component: () => null, // Placeholder, will be replaced by the default export
 };
 
-const AppStore: React.FC<AppComponentProps> = () => {
+const AppStoreApp: React.FC<AppComponentProps> = () => {
   const [apps, setApps] = useState<AvailableApp[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchApps = async () => {
-      try {
-        const availableApps = await window.electronAPI.appStore.discoverAvailableApps();
-        setApps(availableApps);
-      } catch (e: any) {
-        setError(e.message);
-      }
-    };
-
-    fetchApps();
+  const fetchApps = useCallback(async () => {
+    try {
+      const availableApps = await window.electronAPI.appStore.discoverAvailableApps();
+      setApps(availableApps);
+    } catch (e: any) {
+      setError(e.message);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchApps();
+  }, [fetchApps]);
 
   const handleInstall = async (app: AvailableApp) => {
     try {
       const success = await window.electronAPI.appStore.installExternalApp(app);
       if (success) {
         alert(`App "${app.id}" installed successfully! You may need to restart the application to see it in the Start Menu.`);
+        // Refresh the app list to update the button state
+        fetchApps();
       } else {
         throw new Error('Installation returned false.');
       }
@@ -55,12 +57,21 @@ const AppStore: React.FC<AppComponentProps> = () => {
                 <p className="text-gray-600">v{app.version}</p>
                 <p className="mt-2">{app.description || 'No description available.'}</p>
               </div>
-              <button
-                onClick={() => handleInstall(app)}
-                className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Install
-              </button>
+              {app.isInstalled ? (
+                <button
+                  disabled
+                  className="mt-4 bg-gray-400 text-white font-bold py-2 px-4 rounded cursor-not-allowed"
+                >
+                  Installed
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleInstall(app)}
+                  className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  Install
+                </button>
+              )}
             </div>
           ))
         ) : (
@@ -71,4 +82,4 @@ const AppStore: React.FC<AppComponentProps> = () => {
   );
 };
 
-export default AppStore;
+export default AppStoreApp;
