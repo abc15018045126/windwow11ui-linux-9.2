@@ -1,33 +1,23 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { openApp } from '../../store/slices/windowSlice';
-import { getAppDefinitions } from '../../apps';
+import appDefinitions from '../../apps';
 import Icon from './Icon';
-import { AppDefinition } from '../../types';
 
 const StartMenu: React.FC = () => {
   const dispatch = useDispatch();
   const [isShowingAllApps, setIsShowingAllApps] = useState(false);
-  const [apps, setApps] = useState<AppDefinition[]>([]);
-
-  useEffect(() => {
-    const fetchApps = async () => {
-      const definitions = await getAppDefinitions();
-      setApps(definitions);
-    };
-    fetchApps();
-  }, []);
 
   const handleOpenApp = (appId: string) => {
-    const appDef = apps.find(app => app.id === appId);
+    const appDef = appDefinitions.find(app => app.id === appId);
     if (appDef) {
       dispatch(openApp(appDef));
     }
   };
 
   // For now, we'll treat all defined apps as "pinned" for simplicity.
-  const pinnedApps = apps;
-  const sortedApps = useMemo(() => [...apps].sort((a, b) => a.name.localeCompare(b.name)), [apps]);
+  const pinnedApps = appDefinitions;
+  const sortedApps = useMemo(() => [...appDefinitions].sort((a, b) => a.name.localeCompare(b.name)), [appDefinitions]);
 
   return (
     <div

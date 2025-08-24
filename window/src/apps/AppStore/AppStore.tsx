@@ -30,8 +30,7 @@ const AppStore: React.FC<AppComponentProps> = () => {
     try {
       const success = await window.electronAPI.appStore.installExternalApp(app);
       if (success) {
-        alert(`App "${app.name}" installed successfully!`);
-        // Here you would ideally trigger a refresh of the main app list
+        alert(`App "${app.id}" installed successfully! You may need to restart the application to see it in the Start Menu.`);
       } else {
         throw new Error('Installation returned false.');
       }
@@ -52,7 +51,7 @@ const AppStore: React.FC<AppComponentProps> = () => {
           apps.map((app) => (
             <div key={app.id} className="border rounded-lg p-4 flex flex-col">
               <div className="flex-grow">
-                <h2 className="text-xl font-semibold">{app.name}</h2>
+                <h2 className="text-xl font-semibold">{app.id}</h2>
                 <p className="text-gray-600">v{app.version}</p>
                 <p className="mt-2">{app.description || 'No description available.'}</p>
               </div>
