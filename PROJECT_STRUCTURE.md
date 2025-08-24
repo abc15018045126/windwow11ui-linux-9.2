@@ -9,67 +9,49 @@ The root directory contains configuration files and the primary folders that org
 -   `.` (Root)
     -   `README.md`: **[CRITICAL]** The main project documentation outlining the core philosophy of stability and the strict architectural rules.
     -   `package.json`: Defines project metadata, dependencies, and scripts.
-    -   `vite.config.cjs`: Configuration for the Vite bundler, which handles the React frontend.
-    -   `tsconfig.json`: TypeScript configuration for the entire project.
-    -   `tailwind.config.cjs`: Configuration for the Tailwind CSS utility-first framework.
-    -   `postcss.config.cjs`: Configuration for PostCSS, a tool for transforming CSS with JavaScript.
-    -   `apps/`: Contains standalone, external applications that can be discovered and installed by the App Store.
-    -   `function/`: **[CORE LOGIC]** The most critical directory, containing all isolated business logic.
-    -   `main/`: **[BACKEND]** The Electron main process entry point and lifecycle management.
-    -   `services/`: **[API LAYER]** The bridge between the frontend and the backend logic.
-    -   `window/`: **[FRONTEND]** The React-based user interface (renderer process).
-    -   `virtual-fs/`: A simulated filesystem for the application, used for storing desktop items, etc.
-    -   `old/`: **[LEGACY]** Contains the previous version of the application. It is kept for reference but is no longer in active use.
+    -   `apps/`: Contains the source code for standalone, external applications that can be discovered and installed by the App Store.
+    -   `function/`: **[CORE LOGIC]** The most critical directory. Per the architecture rules, it contains isolated business logic. In practice, this often means these functions act as clients that communicate with the backend server.
+    -   `main/`: **[BACKEND]** The Electron main process, which also runs the backend Express.js server.
+    -   `services/`: **[API LAYER]** The "switchboard" that connects the frontend to the backend logic in the `function` module.
+    -   `window/`: **[FRONTEND]** The React-based user interface.
+    -   `virtual-fs/`: A simulated filesystem for the application. (Not currently used for app state).
+    -   `old/`: **[LEGACY]** Contains the previous version of the application for reference.
 
 ---
 
 ## Core Directories Explained
 
-### `main/` (Electron Main Process)
+### `main/` (Electron Main Process & Backend Server)
 
-This directory is the heart of the Electron application itself.
+This directory is the heart of the Electron application and its backend.
 
--   `index.ts`: The main entry point. It creates the browser window, loads the React application, and handles all operating-system-level interactions (like app startup and shutdown).
--   `preload.ts`: A critical security feature in Electron. This script runs in a privileged context and exposes a secure API (`window.electronAPI`) from the main process to the frontend (renderer process), preventing the frontend from having direct access to Node.js APIs.
+-   `index.ts`: The main entry point. It creates the browser window, loads the React app, handles IPC, and **starts the backend server**.
+-   `preload.ts`: Exposes a secure API (`window.electronAPI`) from the main process to the frontend, which is the only way the frontend can communicate with the backend.
+-   `server/`: Contains the Express.js server. This server manages the application's state, such as the list of installed applications, and exposes a REST API for the `function` modules to interact with.
 
 ### `function/` (Isolated Business Logic)
 
-This is where all the "thinking" of the application happens, governed by the strict rules in `README.md`.
+This is where all the "thinking" of the application happens.
 
--   `stable/`: Contains functions whose logic, interface, and behavior are considered permanent and immutable. This guarantees that other parts of the system relying on these functions will never break due to a change in the function itself. Each sub-directory (e.g., `filesystem`, `app-store`) represents a distinct feature domain.
--   `test/`: A directory for developing and experimenting with new functions before they are proven stable. (Currently empty).
+-   `stable/`: Contains stable, immutable functions. These functions are called by the frontend (via the IPC bridge and services layer). They are often clients that `fetch` data from the backend Express server, keeping the core logic on the server and this layer clean.
 
 ### `services/` (API Interface Layer)
 
-This directory acts as a clean, simple, and logic-less "switchboard" that connects the `window` (frontend) to the `function` (backend logic).
+This directory acts as a clean, logic-less "switchboard".
 
--   `api/`: Contains small files that import a stable function from the `function/` directory and expose it.
--   `index.ts`: A barrel file that exports all the individual APIs from the `api/` directory, providing a single, clean entry point for the frontend to import from (`@services/index`).
+-   Its sole purpose is to import functions from the `function/` directory and export them, providing a single, clean interface for the IPC bridge to use.
 
 ### `window/` (Frontend UI)
 
-This directory contains the entire React application that the user sees and interacts with.
+This directory contains the entire React application.
 
--   `index.html`: The HTML entry point for the React application.
--   `src/`: The source code for the React app.
-    -   `main.tsx`: The root of the React application, where it mounts to the `index.html`.
-    -   `App.tsx`: The main React component that lays out the core structure of the UI.
-    -   `apps/`: Contains the React components for core, built-in applications like the "App Store" and "File Explorer".
-    -   `components/`: Contains reusable React components that make up the desktop environment.
-        -   `layout/`: Components that define the overall structure, like the `Desktop` and `Taskbar`.
-        -   `features/`: Specific interactive elements like `AppWindow` (the frame for applications), `ContextMenu`, and the `StartMenu`.
-    -   `store/`: Contains the Redux Toolkit global state management setup.
-        -   `slices/`: Defines the different pieces of the global state (e.g., `windowSlice` manages the state of all open windows).
-        -   `thunks/`: For asynchronous logic that interacts with the Redux store.
-    -   `types/`: Contains shared TypeScript type definitions.
+-   `src/apps/`: Contains the React components for all core, built-in applications (e.g., "Settings", "App Store").
+-   `src/components/`: Contains reusable React components that make up the desktop environment (e.g., `Desktop`, `Taskbar`, `StartMenu`).
+-   `src/store/`: Contains the Redux Toolkit global state management setup.
 
 ### `apps/` (Installable Applications)
 
-This directory acts as the source for applications that can be "installed" via the App Store.
+This directory is a repository for the source code of external, standalone applications.
 
--   Each subdirectory represents a self-contained application, typically with its own `package.json` and entry point (`main.js` or `index.js`).
--   The `AppStore`'s `discoverApps` function scans this directory to find available apps.
-
-### `virtual-fs/` (Simulated Filesystem)
-
--   This directory acts as the user's "hard drive" within the application. For example, the `Desktop/` subdirectory holds the files and shortcuts that are rendered on the UI's desktop. This allows the application to manage files without touching the user's actual computer filesystem.
+-   Each subdirectory is a self-contained application.
+-   The backend server's `/api/apps/available` endpoint scans this directory to let the App Store know what can be installed.

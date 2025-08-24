@@ -1,126 +1,89 @@
-import { promises as fs, existsSync } from 'fs';
-import path from 'path';
+import fetch from 'node-fetch';
 
-const APPS_ROOT = path.join(process.cwd(), 'apps');
-const AUTOGEN_APP_ROOT = path.join(process.cwd(), 'window', 'src', 'apps');
-const DESKTOP_PATH = path.join(process.cwd(), 'virtual-fs', 'Desktop');
+const API_BASE_URL = 'http://localhost:3001/api/apps';
 
-/**
- * Describes an application that is available on the filesystem for installation.
- */
 export interface AvailableApp {
-    id: string; // The directory name, e.g., "Chrome5"
-    name: string; // The name from package.json, e.g., "remote-electron-browser"
+    id: string;
+    name: string;
     version: string;
     description: string;
-    path: string; // The relative path to the app's directory, e.g., "apps/Chrome5"
+    path: string;
     isInstalled?: boolean;
 }
 
-const generateLauncherComponent = (appName: string, appDef: object): string => {
-    const componentName = appName.charAt(0).toUpperCase() + appName.slice(1) + 'App';
-    const appDefString = JSON.stringify(appDef, null, 2);
-
-    return `// This is an auto-generated file for the ${appName} application.
-// Do not edit manually.
-import React from 'react';
-import { AppDefinition, AppComponentProps } from '../../types';
-
-const LauncherComponent: React.FC<AppComponentProps> = () => {
-  // This component is a placeholder for an external application.
-  // It will not be rendered directly. The 'isExternal' flag handles the launch.
-  return null;
-};
-
-export const appDefinition: AppDefinition = ${appDefString};
-
-export default LauncherComponent;
-`;
-};
+export interface InstalledApp {
+    id: string;
+    name: string;
+    icon: string;
+    isExternal: true;
+    externalPath: string;
+}
 
 /**
- * Scans the filesystem for apps that are available to be installed.
+ * Discovers apps available for installation by fetching from the backend server.
  */
 export const AppStore_v1_discoverAvailableApps = async (): Promise<AvailableApp[]> => {
     try {
-        const appFolders = await fs.readdir(APPS_ROOT, { withFileTypes: true });
-        const availableApps: AvailableApp[] = [];
-
-        for (const dirent of appFolders) {
-            if (dirent.isDirectory()) {
-                const packageJsonPath = path.join(APPS_ROOT, dirent.name, 'package.json');
-                try {
-                    const packageJsonContent = await fs.readFile(packageJsonPath, 'utf-8');
-                    const packageJson = JSON.parse(packageJsonContent);
-
-                    if (packageJson.name && packageJson.main) {
-                        const componentName = dirent.name.charAt(0).toUpperCase() + dirent.name.slice(1);
-                        const launcherFilePath = path.join(AUTOGEN_APP_ROOT, `${componentName}App.tsx`);
-
-                        availableApps.push({
-                            id: dirent.name, // e.g., "Chrome5"
-                            name: packageJson.name,
-                            version: packageJson.version,
-                            description: packageJson.description,
-                            path: path.join('apps', dirent.name),
-                            isInstalled: existsSync(launcherFilePath),
-                        });
-                    }
-                } catch (e) {
-                    // Ignore folders without a valid package.json
-                }
-            }
+        const response = await fetch(`${API_BASE_URL}/available`);
+        if (!response.ok) {
+            throw new Error(`Server responded with ${response.status}`);
         }
-        return availableApps;
+        const apps = await response.json() as AvailableApp[];
+
+        // Check installation status
+        const installedApps = await AppStore_v1_getInstalledExternalApps();
+        const installedIds = new Set(installedApps.map(app => app.id));
+
+        return apps.map(app => ({
+            ...app,
+            isInstalled: installedIds.has(app.id),
+        }));
+
     } catch (error) {
-        console.error('[discoverAvailableApps] Error:', error);
+        console.error('[discoverAvailableApps] Error fetching from server:', error);
         return [];
     }
 };
 
 /**
- * Installs an app by generating a .tsx launcher file for it AND a .app shortcut on the desktop.
+ * Installs an app by posting to the backend server.
  */
 export const AppStore_v1_installExternalApp = async (app: AvailableApp): Promise<boolean> => {
     try {
-        const componentName = app.id.charAt(0).toUpperCase() + app.id.slice(1); // "Chrome5"
-        const launcherFilePath = path.join(AUTOGEN_APP_ROOT, `${componentName}App.tsx`);
+        const componentName = app.id.charAt(0).toUpperCase() + app.id.slice(1);
+        const payload = {
+            id: app.id.toLowerCase(),
+            name: componentName,
+            icon: app.id.toLowerCase(),
+            isExternal: true,
+            externalPath: `${app.path}/main.js`,
+        };
 
-        // 1. Generate the .tsx file
-        if (!existsSync(launcherFilePath)) {
-            const appDefinition = {
-                id: app.id.toLowerCase(), // e.g., "chrome5"
-                name: componentName, // Use the sanitized name like "Chrome5" for display
-                icon: app.id.toLowerCase(), // Use the id for the icon name
-                isExternal: true,
-                externalPath: path.join(app.path, 'main.js'),
-                component: null,
-            };
-            const launcherContent = generateLauncherComponent(componentName, appDefinition);
-            await fs.writeFile(launcherFilePath, launcherContent, 'utf-8');
-            console.log(`Successfully generated launcher for ${app.name} at ${launcherFilePath}`);
-        } else {
-             console.warn(`Launcher file for "${app.name}" already exists.`);
-        }
+        const response = await fetch(`${API_BASE_URL}/install`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
 
-        // 2. Generate the .app file on the desktop
-        const desktopShortcutPath = path.join(DESKTOP_PATH, `${componentName}.app`);
-        if (!existsSync(desktopShortcutPath)) {
-            await fs.mkdir(DESKTOP_PATH, { recursive: true }); // Ensure desktop exists
-            const shortcutContent = {
-                appId: app.id.toLowerCase(),
-                name: componentName,
-                icon: app.id.toLowerCase(),
-            };
-            await fs.writeFile(desktopShortcutPath, JSON.stringify(shortcutContent, null, 2), 'utf-8');
-            console.log(`Successfully created desktop shortcut for ${app.name} at ${desktopShortcutPath}`);
-        } else {
-            console.warn(`Desktop shortcut for "${app.name}" already exists.`);
-        }
-
-        return true;
+        return response.ok;
     } catch (error) {
-        console.error(`[installExternalApp] Error for app ${app.name}:`, error);
+        console.error(`[installExternalApp] Error fetching from server:`, error);
         return false;
+    }
+};
+
+/**
+ * Retrieves the list of all installed external applications from the server.
+ */
+export const AppStore_v1_getInstalledExternalApps = async (): Promise<InstalledApp[]> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/installed`);
+        if (!response.ok) {
+            throw new Error(`Server responded with ${response.status}`);
+        }
+        return await response.json() as InstalledApp[];
+    } catch (error) {
+        console.error('[getInstalledExternalApps] Error fetching from server:', error);
+        return [];
     }
 };

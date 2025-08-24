@@ -87,9 +87,10 @@ const Desktop: React.FC = () => {
             const newHydratedApps: OpenApp[] = [];
             for (const serializableApp of serializableApps) {
                 const appDef = await getAppDefinitionById(serializableApp.id);
-                if (appDef) {
+                if (appDef && !appDef.isExternal) {
                     newHydratedApps.push({
                         ...serializableApp,
+                        // It's crucial to get the fresh component function from the definition
                         component: appDef.component,
                     });
                 }

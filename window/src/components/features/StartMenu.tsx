@@ -38,8 +38,8 @@ const StartMenu: React.FC = () => {
             size: appDef.defaultSize || { width: 600, height: 400 },
             zIndex: nextZIndex,
         };
-        // Omit the non-serializable component part before dispatching
-        const { component, ...serializablePayload } = newApp;
+        // Omit the non-serializable parts before dispatching
+        const { component, isExternal, externalPath, ...serializablePayload } = newApp;
         dispatch(_openInternalApp(serializablePayload));
     }
   };

@@ -25,6 +25,7 @@ const electronAPI = {
   appStore: {
     discoverAvailableApps: () => ipcRenderer.invoke('appStore:discover'),
     installExternalApp: (app: any) => ipcRenderer.invoke('appStore:install', app),
+    getInstalledExternalApps: () => ipcRenderer.invoke('appStore:getInstalled'),
   }
 }
 

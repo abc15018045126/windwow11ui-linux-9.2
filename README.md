@@ -93,52 +93,28 @@ expand_less
 ├── main/                        # [BACKEND] Electron Main Process
 │   ├── index.ts                 # Main process entry point: creates window, manages app lifecycle
 │   ├── preload.ts               # Preload script: secure bridge for IPC
-│   └── server/                  # Embedded Express server (for OAuth, etc.)
+│   └── server/                  # Embedded Express server for managing application state (e.g., installed apps).
 │
 ├── window/                      # [FRONTEND] All User Interfaces (Renderer Process)
 │   └── src/
 │       ├── App.tsx              # Root React component
 │       ├── main.tsx             # React application entry point
 │       │
-│       ├── assets/              # Static assets (icons, wallpapers)
-│       ├── components/          # Common UI components for the desktop environment
-│       │   ├── layout/          # Overall desktop structure (Desktop, Taskbar)
-│       │   └── features/        # Specific UI features (AppWindow, ContextMenu, StartMenu)
+│       ├── components/          # Reusable UI components for the desktop environment
 │       │
-│       ├── apps/                # [CORE APPS] Standalone "applications" within the desktop
-│       │   ├── FileManager/
-│       │   ├── Notebook/
-│       │   └── Settings/
+│       ├── apps/                # Contains React components for all core, built-in applications.
 │       │
-│       ├── hooks/               # Custom React Hooks
-│       ├── pages/               # Top-level pages (e.g., DesktopPage)
-│       ├── store/               # Redux global state management
-│       │   └── slices/          # State slices by feature (desktopSlice, windowSlice)
-│       │
-│       ├── lib/                 # Common frontend utility functions
-│       ├── styles/              # Global styles
-│       └── types/               # TypeScript type definitions
+│       └── store/               # Redux global state management
 │
 ├── services/                    # [CORE] API Interface Layer (NO LOGIC)
-│   ├── SERVICES_API.md          # [IMPORTANT] Rules for the services module
-│   └── api/                     # API definitions
+│   └── api/                     # Exports functions from the `function` module.
 │
 ├── function/                    # [CORE] All Business Logic (Completely Isolated)
-│   ├── FUNCTION_GUIDELINES.md   # [IMPORTANT] Core rules for the function module
-│   │
-│   ├── stable/                  # Stable functions (never modified after release)
-│   │   ├── user/
-│   │   └── file/
-│   │
-│   └── test/                    # Test functions (under development)
-│       ├── user/
-│       └── data/
+│   └── stable/                  # Acts as a client to the backend server or performs other pure logic.
 │
-├── components/                  # [Optional] Global, business-agnostic UI library components
-│   └── ui/                      # (e.g., base implementations of Button, Modal)
+├── apps/                        # [EXTERNAL APPS] Source code for installable external applications.
 │
-└── apps/                        # [Optional] External apps or large plug-in modules
-    └── reporting/
+└── virtual-fs/                  # Simulated filesystem for the desktop environment.
 4. Guidelines for AI & Newcomers
 
 To maintain project clarity and long-term maintainability, all contributors (including AI assistants) must adhere to the following guidelines:
