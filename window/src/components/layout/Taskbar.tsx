@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store/store';
 import { toggleStartMenu } from '../../store/slices/uiSlice';
-import { openApp, focusApp, toggleMinimizeApp } from '../../store/slices/windowSlice';
-import appDefinitions from '../../apps';
+import { _openInternalApp, focusApp, toggleMinimizeApp } from '../../store/slices/windowSlice';
+import { getAppDefinitions, getAppDefinitionById } from '../../apps';
 import Icon from '../features/Icon';
 import { AppDefinition, OpenApp } from '../../types';
 
@@ -16,20 +16,30 @@ type TaskbarApp = (AppDefinition | OpenApp) & {
 
 const Taskbar: React.FC = () => {
     const dispatch = useDispatch();
-    const { openApps, activeInstanceId } = useSelector((state: RootState) => state.windows);
+    const { openApps, activeInstanceId, nextZIndex } = useSelector((state: RootState) => state.windows);
     const { pinnedApps } = useSelector((state: RootState) => state.ui);
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [allApps, setAllApps] = useState<AppDefinition[]>([]);
 
     useEffect(() => {
         const timerId = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timerId);
     }, []);
 
+    useEffect(() => {
+        const fetchApps = async () => {
+            const definitions = await getAppDefinitions();
+            setAllApps(definitions);
+        };
+        fetchApps();
+    }, []);
+
+
     const taskbarApps = useMemo(() => {
         const runningInstanceAppIds = new Set(openApps.map(app => app.id));
 
         const pinnedAndNotRunning = pinnedApps
-            .map(appId => appDefinitions.find(def => def.id === appId))
+            .map(appId => allApps.find(def => def.id === appId))
             .filter((appDef): appDef is AppDefinition => !!appDef && !runningInstanceAppIds.has(appDef.id));
 
         const combined = [
@@ -38,13 +48,13 @@ const Taskbar: React.FC = () => {
         ];
 
         return combined;
-    }, [pinnedApps, openApps, appDefinitions, activeInstanceId]);
+    }, [pinnedApps, openApps, allApps, activeInstanceId]);
 
     const handleToggleStartMenu = () => {
         dispatch(toggleStartMenu());
     };
 
-    const handleAppIconClick = (app: TaskbarApp) => {
+    const handleAppIconClick = async (app: TaskbarApp) => {
         if (app.isOpen && 'instanceId' in app) {
             const openAppInstance = app as OpenApp;
             if (openAppInstance.isMinimized) {
@@ -55,8 +65,26 @@ const Taskbar: React.FC = () => {
                 dispatch(focusApp(openAppInstance.instanceId));
             }
         } else {
-            const appDef = appDefinitions.find(def => def.id === app.id);
-            if (appDef) dispatch(openApp(appDef));
+            const appDef = await getAppDefinitionById(app.id);
+            if (appDef) {
+                if (appDef.isExternal && appDef.externalPath) {
+                    window.electronAPI.launcher.launchExternal(appDef.externalPath);
+                } else {
+                    const instanceId = `${appDef.id}-${Date.now()}`;
+                    const newApp = {
+                        ...appDef,
+                        instanceId,
+                        title: appDef.name,
+                        isMinimized: false,
+                        isMaximized: false,
+                        position: { x: 50, y: 50 },
+                        size: appDef.defaultSize || { width: 600, height: 400 },
+                        zIndex: nextZIndex,
+                    };
+                    const { component, ...serializablePayload } = newApp;
+                    dispatch(_openInternalApp(serializablePayload));
+                }
+            }
         }
     };
 
