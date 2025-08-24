@@ -5,7 +5,7 @@ import type { AvailableApp } from '../../../function/stable/app-store/AppStore_v
 export const appDefinition: AppDefinition = {
   id: 'app-store',
   name: 'App Store',
-  icon: 'store',
+  icon: 'chrome', // Using 'chrome' as a substitute for 'store'
   component: () => null, // Placeholder, will be replaced by the default export
 };
 

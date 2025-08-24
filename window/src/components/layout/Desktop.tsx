@@ -5,6 +5,8 @@ import { openItem } from '../../store/thunks/openItemThunk';
 import AppWindow from '../features/AppWindow';
 import Icon, { isValidIcon } from '../features/Icon';
 import ContextMenu, { ContextMenuItem } from '../features/ContextMenu';
+import { getAppDefinitionById } from '../../apps';
+import { OpenApp } from '../../types';
 
 interface FilesystemItem {
     name: string;
@@ -72,12 +74,30 @@ const DesktopItem: React.FC<{
 };
 
 const Desktop: React.FC = () => {
-    const { openApps, activeInstanceId } = useSelector((state: RootState) => state.windows);
+    const { openApps: serializableApps, activeInstanceId } = useSelector((state: RootState) => state.windows);
+    const [hydratedApps, setHydratedApps] = useState<OpenApp[]>([]);
     const [desktopItems, setDesktopItems] = useState<FilesystemItem[]>([]);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; targetItem?: FilesystemItem } | null>(null);
     const [renamingItem, setRenamingItem] = useState<{ path: string, value: string } | null>(null);
     const desktopRef = useRef<HTMLDivElement>(null);
     const dispatch = useDispatch<AppDispatch>();
+
+    useEffect(() => {
+        const hydrateApps = async () => {
+            const newHydratedApps: OpenApp[] = [];
+            for (const serializableApp of serializableApps) {
+                const appDef = await getAppDefinitionById(serializableApp.id);
+                if (appDef) {
+                    newHydratedApps.push({
+                        ...serializableApp,
+                        component: appDef.component,
+                    });
+                }
+            }
+            setHydratedApps(newHydratedApps);
+        };
+        hydrateApps();
+    }, [serializableApps]);
 
     const fetchDesktopItems = useCallback(async () => {
         const items = await window.electronAPI.filesystem.getItemsInPath('/Desktop');
@@ -146,7 +166,7 @@ const Desktop: React.FC = () => {
                 ))}
             </div>
 
-            {openApps.map((app) => (
+            {hydratedApps.map((app) => (
                 <AppWindow key={app.instanceId} app={app} isActive={app.instanceId === activeInstanceId} />
             ))}
 
